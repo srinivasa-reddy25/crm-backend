@@ -27,20 +27,50 @@ const listallContacts = async (req, res) => {
 
 
         const search = req.query.search;
-        const tagFilter = req.query.tags ? req.query.tags.split(',') : [];
 
 
         const user = await User.findOne({ firebaseUID: req.user.uid });
-
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
-
         const userId = user._id;
-
-
-
         let query = { createdBy: userId };
+
+
+        // const invalidTagIds = await req.query.tags?.split(',').filter(id => !mongoose.Types.ObjectId.isValid(id));
+        // console.log(invalidTagIds)
+        // if (invalidTagIds.length > 0) {
+        //     console.warn("Invalid tag IDs:", invalidTagIds);
+        //     return res.status(404).json({ error: 'Invalid Tag' });
+        // }
+
+
+
+
+        if (req.query.tag) {
+            if (!mongoose.Types.ObjectId.isValid(req.query.tag)) {
+                return res.status(400).json({ error: "Invalid tag ID" });
+            }
+            query.tags = req.query.tag;
+        } else if (req.query.tags) {
+            const rawTagIds = req.query.tags.split(',');
+            const allAreValid = rawTagIds.every(id => mongoose.Types.ObjectId.isValid(id));
+            if (!allAreValid) {
+                return res.status(400).json({ error: "One or more tag IDs are invalid" });
+            }
+            const tagIds = rawTagIds; // now we know all are valid
+            const matchType = req.query.matchType || 'any';
+            if (tagIds.length > 0) {
+                if (matchType === 'all') {
+                    query.tags = { $all: tagIds };
+                } else {
+                    query.tags = { $in: tagIds };
+                }
+            }
+        }
+
+
+
 
         if (search) {
             query.$or = [
@@ -51,19 +81,22 @@ const listallContacts = async (req, res) => {
         }
 
 
-        if (tagFilter.length > 0) {
-            query.tags = { $in: tagFilter.map(id => mongoose.Types.ObjectId(id)) };
-        }
+        // if (tagFilter.length > 0) {
+        //     query.tags = { $in: tagFilter.map(id => mongoose.Types.ObjectId(id)) };
+        // }
+
 
         const contacts = await Contact.find(query)
             .sort({ [sortBy]: order })
             .skip(skip)
             .limit(limit)
-            .populate('tags');
+            .populate('tags')
+            .populate({
+                path: 'company',
+                model: 'Company' // Make sure this matches your Company model name
+            });
 
         const total = await Contact.countDocuments(query);
-
-
         return res.status(200).json({
             contacts,
             total,
@@ -214,7 +247,7 @@ const getContactById = async (req, res) => {
         const contact = await Contact.findOne({
             _id: contactId,
             createdBy: userId,
-        }).populate('tags');
+        }).populate('tags').populate('company');
 
 
         if (!contact) {
@@ -254,20 +287,22 @@ const updateContactById = async (req, res) => {
     try {
 
         const contactId = req.params.id;
+        console.log("Contact ID:", contactId);
 
         if (!mongoose.Types.ObjectId.isValid(contactId)) {
             return res.status(400).json({ error: 'Invalid contact ID' });
         }
+        console.log("Valid Contact ID:", contactId);
+
 
         const user = await User.findOne({ firebaseUID: req.user.uid });
 
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
+        console.log("User found:", user);
 
         const userId = user._id;
-
-
 
         const existingContact = await Contact.findOne({
             _id: contactId,
@@ -279,7 +314,12 @@ const updateContactById = async (req, res) => {
             return res.status(404).json({ error: 'Contact not found' });
         }
 
+        console.log("Contact found:", existingContact);
+        console.log("Request body:", req.body);
+
         const { name, email, phone, company, notes, tags } = req.body;
+
+
 
         if (tags) {
             const validTags = await Tag.find({ _id: { $in: tags } });
@@ -313,13 +353,6 @@ const updateContactById = async (req, res) => {
             message: "Contact updated successfully",
             contact: existingContact
         });
-
-
-
-
-
-
-
 
     } catch (error) {
 
@@ -370,9 +403,7 @@ const deleteContactById = async (req, res) => {
 
 const bulkDeleteContacts = async (req, res) => {
 
-
     try {
-
 
         const user = await User.findOne({ firebaseUID: req.user.uid });
 

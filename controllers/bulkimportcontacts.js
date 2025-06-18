@@ -1,6 +1,9 @@
 const fs = require('fs');
 const csv = require('csv-parser');
-const Contact = require('../models/Contact');
+const { Contact } = require('../models/Contact');
+
+const { Company } = require("../models/Company")
+const { Tag } = require('../models/Tags');
 
 const User = require('../models/User');
 
@@ -34,7 +37,44 @@ const bulkImportContacts = async (req, res) => {
 
 
         for await (const row of fileStream) {
-            const { name, email, phone, company, notes } = row;
+            const { name, email, phone, company, notes, tags } = row;
+            console.log("row : ", row);
+
+            let existingCompanyid = null;
+
+            if (company) {
+                const existingCompany = await Company.findOne({ name: company, createdBy: userId });
+                existingCompanyid = existingCompany ? existingCompany._id : null;
+                // if (existingCompany) {
+                //     existingCompany.usageCount += 1;
+                //     await existingCompany.save();
+                // } else {
+                //     const newCompany = new Company({
+                //         name: company,
+                //         createdBy: userId,
+                //         usageCount: 1,
+                //     });
+                //     await newCompany.save();
+                // }
+                console.log("existingCompanyid : ", existingCompanyid);
+            }
+
+            if (tags) {
+                const tagNames = tags.split(';').map(tag => tag.trim());
+                const tagIds = await Promise.all(tagNames.map(async (tagName) => {
+                    let tag = await Tag.findOne({ name: tagName, createdBy: userId });
+                    if (!tag) {
+                        tag = new Tag({ name: tagName, createdBy: userId });
+                        await tag.save();
+                    }
+                    return tag._id;
+                }));
+                row.tags = tagIds;
+            }
+
+
+
+
 
             if (!name || !email) {
                 failed.push({ row, reason: 'Missing required fields' });
@@ -50,8 +90,9 @@ const bulkImportContacts = async (req, res) => {
             contacts.push({
                 name,
                 email,
+                tags: row.tags || [],
                 phone,
-                company,
+                company: existingCompanyid || null,
                 notes,
                 createdBy: userId,
                 createdAt: new Date(),
@@ -63,7 +104,13 @@ const bulkImportContacts = async (req, res) => {
                 await Contact.insertMany(contacts);
                 contacts.length = 0;
             }
+
         }
+        // return res.json({
+        //     message: 'Processing row',
+        //     successCount: contacts.length,
+        //     failureCount: failed.length,
+        // })
 
         if (contacts.length > 0) {
             await Contact.insertMany(contacts);

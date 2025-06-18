@@ -25,58 +25,71 @@ const getAllTags = async (req, res) => {
 };
 
 
-
-
 const createNewTag = async (req, res) => {
     try {
 
-        // const errors = validationResult(req);
-        // if (!errors.isEmpty()) {
-        //   return res.status(400).json({ errors: errors.array() });
-        // }
-
-        const { name, color } = req.body;
-
-
         const user = await User.findOne({ firebaseUID: req.user.uid });
-
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
-
         const userId = user._id;
 
-        const existingTag = await Tag.findOne({ name, createdBy: userId });
-        if (existingTag) {
-            return res.status(409).json({ error: 'Tag with this name already exists.' });
+        const tagsData = Array.isArray(req.body.tags) ? req.body.tags : [req.body];
+
+        if (tagsData.length === 0) {
+            return res.status(400).json({ error: 'No tags provided' });
+        }
+
+        const createdTags = [];
+        const errors = [];
+
+
+        for (const tagData of tagsData) {
+            const { name, color } = tagData;
+
+            if (!name || !color) {
+                errors.push({ tag: tagData, error: 'Name and color are required' });
+                continue;
+            }
+
+            const existingTag = await Tag.findOne({ name, createdBy: userId });
+            if (existingTag) {
+                errors.push({ tag: tagData, error: 'Tag with this name already exists' });
+                continue;
+            }
+
+            const newTag = new Tag({
+                name,
+                color,
+                createdBy: userId,
+            });
+
+            await newTag.save();
+            createdTags.push(newTag);
         }
 
 
+        const response = {
+            message: `${createdTags.length} tag(s) created successfully`,
+            tags: createdTags
+        };
 
 
-        console.log("User ID from middleware: ", userId);
+        if (errors.length > 0) {
+            response.errors = errors;
+        }
 
-        const newTag = new Tag({
-            name,
-            color,
-            createdBy: userId,
-        });
+        const statusCode = createdTags.length > 0 ?
+            (errors.length > 0 ? 207 : 201) :
+            400;
 
-        await newTag.save();
+        res.status(statusCode).json(response);
 
-        res.status(201).json({
-            message: 'Tag created successfully',
-            tag: newTag,
-        });
     } catch (error) {
-        console.error('Error creating tag:', error);
+        console.error('Error creating tag(s):', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
-
-
-
-
 
 const getTagById = async (req, res) => {
     try {
@@ -111,8 +124,6 @@ const getTagById = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
-
-
 
 
 

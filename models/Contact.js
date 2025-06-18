@@ -30,4 +30,4 @@ contactSchema.index({
 
 const Contact = mongoose.models.Contact || mongoose.model("Contact", contactSchema);
 
-module.exports = { Contact };
+module.exports = { Contact }; 
