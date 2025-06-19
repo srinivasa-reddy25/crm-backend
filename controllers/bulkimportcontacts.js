@@ -5,6 +5,9 @@ const { Contact } = require('../models/Contact');
 const { Company } = require("../models/Company")
 const { Tag } = require('../models/Tags');
 
+const { Activity } = require('../models/Activities');
+
+
 const User = require('../models/User');
 
 
@@ -117,6 +120,31 @@ const bulkImportContacts = async (req, res) => {
         }
 
         fs.unlinkSync(filePath);
+
+
+
+        try {
+            await Activity.create({
+                user: userId,
+                action: 'bulk_import',
+                entityType: 'contact',
+                entityId: null,
+                details: {
+                    successCount: contacts.length,
+                    failureCount: failed.length,
+                    failedReasons: failed.map(f => ({
+                        email: f.row.email,
+                        reason: f.reason
+                    }))
+                }
+            });
+        } catch (logError) {
+            console.error("Activity logging failed for bulk import:", logError);
+        }
+
+
+
+
 
 
         res.status(200).json({

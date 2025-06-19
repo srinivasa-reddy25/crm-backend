@@ -2,7 +2,7 @@ const express = require('express');
 const authenticate = require("../middleware/auth")
 const User = require("../models/User")
 
-
+const { Activity } = require("../models/Activities")
 const router = express.Router()
 
 
@@ -26,6 +26,7 @@ const registerFunction = async (req, res) => {
     //     uid, email, name
     // })
 
+
     const user = new User({
         firebaseUID: uid,
         displayName: name,
@@ -33,6 +34,9 @@ const registerFunction = async (req, res) => {
         profilePicture,
         preference
     })
+
+
+
 
     const saveUser = await user.save();
     res.status(200).json({
@@ -54,6 +58,17 @@ const loginFunction = async (req, res) => {
                 error: "User not found. Please register first."
             })
         }
+
+        await Activity.create({
+            user: user._id,
+            action: "user_login",
+            entityType: "user",
+            entityId: user._id,
+            entityName: user.displayName || user.email,
+            details: {
+                email: user.email
+            }
+        });
 
         res.status(200).json({
             message: 'Login successful',
@@ -91,12 +106,37 @@ const handleGoogleAuth = async (req, res) => {
 
             await user.save();
 
+            await Activity.create({
+                user: user._id,
+                action: "user_register",
+                entityType: "user",
+                entityId: user._id,
+                entityName: user.displayName || user.email,
+                details: {
+                    email: user.email
+                }
+            });
+
             return res.status(201).json({
                 message: 'Google user registered successfully',
                 user,
                 isNewUser: true
             });
         }
+
+        await Activity.create({
+            user: user._id,
+            action: "user_login",
+            entityType: "user",
+            entityId: user._id,
+            entityName: user.displayName || user.email,
+            details: {
+                email: user.email
+            }
+        });
+
+
+
 
         return res.status(200).json({
             message: 'Google login successful',
@@ -150,7 +190,7 @@ const updateprofilefunction = async (req, res) => {
 
         const updateduser = await User.findOneAndUpdate({ firebaseUID: uid },
             { $set: { displayName, profilePicture } },
-            { new: true } 
+            { new: true }
         )
 
         if (!updateduser) {

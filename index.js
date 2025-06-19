@@ -24,6 +24,8 @@ app.use(express.json());
 app.use(morgan('dev'));
 app.use(helmet());
 
+app.use('/api/activities', require('./routes/activityRoutes'));
+
 
 app.use("/api", authRouters)
 app.use("/api/contacts", contactRouters)

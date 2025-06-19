@@ -4,6 +4,8 @@ const { Contact } = require("../models/Contact.js");
 
 const mongoose = require("mongoose");
 
+const { Activity } = require('../models/Activities.js');
+
 const { Tag } = require("../models/Tags.js");
 const { Company } = require("../models/Company.js");
 
@@ -45,8 +47,6 @@ const listallContacts = async (req, res) => {
         // }
 
 
-
-
         if (req.query.tag) {
             if (!mongoose.Types.ObjectId.isValid(req.query.tag)) {
                 return res.status(400).json({ error: "Invalid tag ID" });
@@ -76,7 +76,6 @@ const listallContacts = async (req, res) => {
             query.$or = [
                 { name: { $regex: search, $options: 'i' } },
                 { email: { $regex: search, $options: 'i' } },
-                { company: { $regex: search, $options: 'i' } },
             ];
         }
 
@@ -93,7 +92,7 @@ const listallContacts = async (req, res) => {
             .populate('tags')
             .populate({
                 path: 'company',
-                model: 'Company' // Make sure this matches your Company model name
+                model: 'Company'
             });
 
         const total = await Contact.countDocuments(query);
@@ -141,10 +140,9 @@ const createNewContact = async (req, res) => {
         const userId = user._id;
 
 
-
         // const userId = new mongoose.Types.ObjectId(req.body.id) || req.user.id; // Assuming userId is passed in the request body or from the authenticated user
 
-        const existingContact = await Contact.findOne({ email }, { createdBy: userId });
+        const existingContact = await Contact.findOne({ email, createdBy: userId });
         if (existingContact) {
             return res.status(409).json({ error: 'Contact with this email already exists.' });
         }
@@ -318,6 +316,7 @@ const updateContactById = async (req, res) => {
         console.log("Request body:", req.body);
 
         const { name, email, phone, company, notes, tags } = req.body;
+        console.log("Request body fields:", { name, email, phone, company, notes, tags });
 
 
 
@@ -336,18 +335,65 @@ const updateContactById = async (req, res) => {
             existingContact.tags = tags;
         }
 
+        if (company) {
+            const existingCompany = await Company.findOne({ name: company, createdBy: userId });
+            if (existingCompany) {
+                existingContact.company = existingCompany._id || existingContact.company;
+            } else {
+                return res.status(404).json({ error: 'Company not found' });
+            }
+        } else {
+            existingContact.company = null;
+        }
+
 
         existingContact.name = name || existingContact.name;
         existingContact.email = email || existingContact.email;
         existingContact.phone = phone || existingContact.phone;
-        existingContact.company = company || existingContact.company;
+        existingContact.company = existingContact.company || null;
         existingContact.notes = notes || existingContact.notes;
         existingContact.updatedAt = new Date();
         existingContact.lastInteraction = new Date();
 
+
+
+
+        const changes = {};
+        const fieldsToCheck = ['name', 'email', 'phone', 'company', 'notes', 'tags'];
+        for (const field of fieldsToCheck) {
+            const oldVal = existingContact[field]?.toString();
+            const newVal = req.body[field]?.toString();
+
+            if (req.body[field] !== undefined && oldVal !== newVal) {
+                changes[field] = {
+                    from: existingContact[field],
+                    to: req.body[field]
+                };
+            }
+        }
+
+
+
         await existingContact.save();
         await existingContact.populate('tags');
 
+
+
+
+        if (Object.keys(changes).length > 0) {
+            // const { Activity } = require('../models/Activity');
+            await Activity.create({
+                user: userId,
+                action: 'contact_updated',
+                entityType: 'contact',
+                entityId: existingContact._id,
+                entityName: existingContact.name,
+                details: {
+                    contactName: existingContact.name,
+                    changes
+                }
+            });
+        }
 
         res.status(200).json({
             message: "Contact updated successfully",
@@ -432,6 +478,20 @@ const bulkDeleteContacts = async (req, res) => {
         }
 
         const result = await Contact.deleteMany({ _id: { $in: ids }, createdBy: userId });
+
+
+        await Activity.create({
+            user: userId,
+            action: 'bulk_delete',
+            entityType: 'contact',
+            entityId: null, // No single entity, since it's bulk
+            details: {
+                count: userContacts.length,
+                names: userContacts.map(c => c.name),
+                ids: ids
+            }
+        });
+
 
 
         res.status(200).json({

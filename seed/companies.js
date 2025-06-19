@@ -15,10 +15,10 @@ const getUserId = async () => {
   try {
     await mongoose.connect(MONGO_URI);
     console.log('✅ Connected to MongoDB for user lookup');
-    
+
     // Now User model is properly loaded
     const user = await User.findOne({ firebaseUID });
-    
+
     if (user) {
       console.log('Found user with ID:', user._id);
       return user._id;
@@ -36,7 +36,7 @@ async function seedCompanies() {
   try {
     // Get the user ID first
     const userId = await getUserId();
-    
+
     // No need to connect again if already connected in getUserId
     if (mongoose.connection.readyState !== 1) {
       await mongoose.connect(MONGO_URI);
