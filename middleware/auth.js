@@ -5,12 +5,16 @@ const admin = require("../config/firebase")
 const authenticate = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
+
+
+
         // console.log("Auth Header : ", authHeader)
 
         // console.log("Auth Header : ", authHeader)
         // console.log(!authHeader.startsWith("Bearer "))
 
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            console.log("No Authorization Header Found")
             return res.status(401).json({ error: 'Unauthorized: No token provided' });
         }
 

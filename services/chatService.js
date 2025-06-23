@@ -1,14 +1,19 @@
 
+
 const { ChatMessage } = require('../models/chatMessage');
 const { Conversation } = require('../models/Conversation');
 
 
 
 async function getOrCreateConversation(userId) {
-    let conversation = await Conversation.findOne({ user: userId }).sort({ lastUpdated: -1 });
+    let conversation = await Conversation.findOne({ user: userId, isArchived: false })
+        .sort({ lastUpdated: -1 });
 
     if (!conversation) {
-        conversation = new Conversation({ user: userId, title: 'New Conversation' });
+        conversation = new Conversation({
+            user: userId,
+            title: `Conversation - ${new Date().toLocaleString()}`
+        });
         await conversation.save();
     }
 
@@ -17,20 +22,23 @@ async function getOrCreateConversation(userId) {
 
 
 
-
 async function saveMessage(userId, messageText, sender, conversationId = null) {
     let conversation;
 
     if (conversationId) {
-        conversation = await Conversation.findById(conversationId);
-        
-        if (!conversation) {
-            throw new Error('Conversation not found');
-        }
+        conversation = await Conversation.findOne({
+            _id: conversationId,
+            user: userId,
+            isArchived: false,
+        });
 
+        if (!conversation) {
+            throw new Error('❌ Conversation not found or unauthorized');
+        }
     } else {
         conversation = await getOrCreateConversation(userId);
     }
+
 
     conversation.lastUpdated = new Date();
     await conversation.save();
@@ -42,8 +50,8 @@ async function saveMessage(userId, messageText, sender, conversationId = null) {
         timestamp: new Date(),
         conversationId: conversation._id,
         metadata: {
-            messageType: 'text'
-        }
+            messageType: 'text',
+        },
     });
 
     await message.save();

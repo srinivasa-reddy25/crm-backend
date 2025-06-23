@@ -31,7 +31,10 @@ async function handleClearConversation(socket, { userId, conversationId }) {
 
 
 
-async function handleGetChatHistory(socket, { userId, conversationId, page = 1, limit = 20 }) {
+async function handleGetChatHistory(socket, userId, conversationId, page = 1, limit = 20) {
+
+    console.log(`🔍 Fetching chat history for user ${userId} in conversation ${conversationId}, page ${page}, limit ${limit}`);
+
     try {
         if (!userId || !conversationId) return;
 
@@ -52,7 +55,6 @@ async function handleGetChatHistory(socket, { userId, conversationId, page = 1, 
     }
 }
 
-// module.exports = { handleGetChatHistory };
 
 
 function setupSocketIO(server, options = {}) {
@@ -79,29 +81,30 @@ function setupSocketIO(server, options = {}) {
         socket.on('join-chat', () => {
             socket.join(`chat-${uid}`);
             console.log(`✅ ${uid} joined chat-${uid}`);
-        });
+        })
 
-        socket.on('get-chat-history', (payload) => {
-            handleGetChatHistory(socket, payload);
-        });
+        socket.on('get-chat-history', ({ conversationId }) => {
+            handleGetChatHistory(socket, uid, conversationId);
+        })
+
 
         socket.on('clear-conversation', (payload) => {
             handleClearConversation(socket, payload);
-        });
+        })
 
         socket.on('send-message', async (data) => {
-            const { message } = data;
+            const { message, conversationId } = data;
             const userId = uid;
             try {
                 if (!userId || !message?.trim()) return;
 
-                const userMsg = await saveMessage(userId, message, 'user');
+                const userMsg = await saveMessage(userId, message, 'user', conversationId);
 
                 socket.emit('ai-typing', true);
 
                 const aiResponse = await processWithAI(message, userId);
 
-                const aiMsg = await saveMessage(userId, aiResponse, 'ai');
+                const aiMsg = await saveMessage(userId, aiResponse, 'ai', conversationId);
 
                 socket.emit('ai-typing', false);
 
