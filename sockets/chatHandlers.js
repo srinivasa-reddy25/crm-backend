@@ -1,4 +1,6 @@
 // server/socket.js
+console.log('🔌 Initializing Socket.IO...');
+
 
 const { Server } = require('socket.io');
 
@@ -63,10 +65,14 @@ function setupSocketIO(server, options = {}) {
         ...options
     });
 
+    console.log('✅ Socket.IO setup complete');
+
     io.use(socketAuthMiddleware);
 
     io.on('connection', (socket) => {
         const { uid } = socket.user;
+        console.log(`🧠 New socket connection established: ${socket.id}`);
+
 
         console.log('🔌 New client connected:', socket.id);
 

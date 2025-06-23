@@ -1,8 +1,13 @@
 const axios = require('axios');
 console.log('🔵 AI Service Initialized');
-console.log("api key:", process.env.OPENAI_API_KEY ? 'Available' : 'Not Set');
+
 
 async function processWithAI(userMessage) {
+
+    console.log('🔵 Processing message with AI:', userMessage);
+    console.log("api key:", process.env.OPENAI_API_KEY ? 'Available' : 'Not Set');
+
+
     try {
         const systemPrompt = {
             role: 'system',
@@ -30,6 +35,7 @@ async function processWithAI(userMessage) {
         );
 
         const aiReply = response.data.choices?.[0]?.message?.content || 'Sorry, I couldn’t generate a response.';
+        console.log('✅ AI replied with:', aiReply);
         return aiReply.trim();
 
     } catch (error) {

@@ -73,9 +73,8 @@ process.on('SIGTERM', () => {
 
 
 
-app.listen(PORT, async () => {
+server.listen(PORT, async () => {
     console.log(`Server starting on port ${PORT}...`);
-
     try {
         await connectToDataBase();
         console.log('Connected to database successfully');

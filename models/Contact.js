@@ -21,17 +21,17 @@ const contactSchema = new Schema({
 
 // let wasNew = false;
 
-// contactSchema.pre('save', function (next) {
-//     wasNew = this.isNew; 
-//     this.updatedAt = Date.now();
-//     next();
-// });
+contactSchema.pre('save', function (next) {
+    this._wasNew = this.isNew;
+    next();
+});
 
 contactSchema.index({ name: 'text', email: 'text' });
 
 
 contactSchema.post('save', async function (doc, next) {
-    if (doc.isNew) {
+    if (this._wasNew) {
+        console.log('New contact created:', doc.name);
         try {
             await Activity.create({
                 user: doc.createdBy,

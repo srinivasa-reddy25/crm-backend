@@ -28,7 +28,8 @@ const chatMessageSchema = mongoose.Schema({
     },
 
     conversationId: {
-        type: String,
+        type: objectId,
+        ref: 'Conversation',
         required: true,
         index: true
     },
