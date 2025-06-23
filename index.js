@@ -4,6 +4,13 @@ const morgan = require('morgan');
 const helmet = require('helmet');
 const dotenv = require('dotenv')
 
+const http = require('http');
+const setupSocketIO = require('./sockets/chatHandlers');
+
+
+// const { processWithAI } = require('./services/aiService');
+
+
 dotenv.config()
 
 const connectToDataBase = require('./config/database')
@@ -13,9 +20,14 @@ const contactRouters = require("./routes/contact")
 const CompanyRouter = require("./routes/company")
 const TagRouter = require("./routes/tag")
 const dashboardRouter = require("./routes/dashboard")
+const conversationRoutes = require('./routes/conversationRoutes');
 
 
 const app = express();
+
+const server = http.createServer(app);
+const io = setupSocketIO(server);
+
 
 app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:3000',
@@ -33,11 +45,17 @@ app.use("/api/contacts", contactRouters)
 app.use("/api/companies", CompanyRouter)
 app.use("/api/tags", TagRouter)
 app.use("/api/dashboard", dashboardRouter)
+app.use('/api/conversations', conversationRoutes);
 
 
 const PORT = process.env.PORT
 
 
+// const testmessage = async (message) => {
+//     const aiResponse = await processWithAI(message);
+//     console.log("AI Response:", aiResponse);
+// }
+// testmessage("Hello, how can I help you today?");
 
 
 process.on('SIGINT', () => {
