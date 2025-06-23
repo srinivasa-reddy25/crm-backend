@@ -156,17 +156,18 @@ const createNewContact = async (req, res) => {
         if (company) {
             const existingCompany = await Company.findOne({ name: company, createdBy: userId });
             existingCompanyid = existingCompany ? existingCompany._id : null;
-            // if (existingCompany) {
-            //     existingCompany.usageCount += 1;
-            //     await existingCompany.save();
-            // } else {
-            //     const newCompany = new Company({
-            //         name: company,
-            //         createdBy: userId,
-            //         usageCount: 1,
-            //     });
-            //     await newCompany.save();
-            // }
+            if (existingCompany) {
+                // existingCompany.usageCount += 1;
+                // await existingCompany.save();
+            } else {
+                const newCompany = new Company({
+                    name: company,
+                    createdBy: userId,
+                    usageCount: 1,
+                });
+                await newCompany.save();
+                existingCompanyid = newCompany._id;
+            }
         }
 
         if (tags && tags.length > 0) {
@@ -320,46 +321,37 @@ const updateContactById = async (req, res) => {
 
 
 
-        if (tags) {
-            const validTags = await Tag.find({ _id: { $in: tags } });
+        // if (tags) {
+        //     const validTags = await Tag.find({ _id: { $in: tags } });
 
-            if (validTags.length !== tags.length) {
-                return res.status(400).json({ error: 'Invalid tag IDs' });
-            }
+        //     if (validTags.length !== tags.length) {
+        //         return res.status(400).json({ error: 'Invalid tag IDs' });
+        //     }
 
-            await Tag.updateMany(
-                { _id: { $in: tags } },
-                { $inc: { usageCount: 1 } }
-            );
+        //     await Tag.updateMany(
+        //         { _id: { $in: tags } },
+        //         { $inc: { usageCount: 1 } }
+        //     );
 
-            existingContact.tags = tags;
-        }
+        //     existingContact.tags = tags;
+        // }
 
-        if (company) {
-            const existingCompany = await Company.findOne({ name: company, createdBy: userId });
-            if (existingCompany) {
-                existingContact.company = existingCompany._id || existingContact.company;
-            } else {
-                return res.status(404).json({ error: 'Company not found' });
-            }
-        } else {
-            existingContact.company = null;
-        }
-
-
-        existingContact.name = name || existingContact.name;
-        existingContact.email = email || existingContact.email;
-        existingContact.phone = phone || existingContact.phone;
-        existingContact.company = existingContact.company || null;
-        existingContact.notes = notes || existingContact.notes;
-        existingContact.updatedAt = new Date();
-        existingContact.lastInteraction = new Date();
+        // if (company) {
+        //     const existingCompany = await Company.findOne({ name: company, createdBy: userId });
+        //     if (existingCompany) {
+        //         existingContact.company = existingCompany._id || existingContact.company;
+        //     } else {
+        //         return res.status(404).json({ error: 'Company not found' });
+        //     }
+        // } else {
+        //     existingContact.company = null;
+        // }
 
 
 
 
         const changes = {};
-        const fieldsToCheck = ['name', 'email', 'phone', 'company', 'notes', 'tags'];
+        const fieldsToCheck = ['name', 'email', 'phone', 'company', 'notes'];
         for (const field of fieldsToCheck) {
             const oldVal = existingContact[field]?.toString();
             const newVal = req.body[field]?.toString();
@@ -372,7 +364,43 @@ const updateContactById = async (req, res) => {
             }
         }
 
+        if (tags) {
+            const validTags = await Tag.find({ _id: { $in: tags } });
 
+            if (validTags.length !== tags.length) {
+                return res.status(400).json({ error: 'Invalid tag IDs' });
+            }
+
+            const oldTags = existingContact.tags.map(id => id.toString()).sort();
+            const newTags = tags.map(id => id.toString()).sort();
+
+            const tagsChanged = oldTags.length !== newTags.length ||
+                oldTags.some((id, i) => id !== newTags[i]);
+
+            if (tagsChanged) {
+                // Fetch old tag names
+                const oldTagDocs = await Tag.find({ _id: { $in: oldTags } });
+                const newTagDocs = await Tag.find({ _id: { $in: newTags } });
+
+                changes.tags = {
+                    from: oldTagDocs.map(tag => tag.name),
+                    to: newTagDocs.map(tag => tag.name)
+                };
+
+                existingContact.tags = tags;
+            }
+            
+        }
+
+
+
+        existingContact.name = name || existingContact.name;
+        existingContact.email = email || existingContact.email;
+        existingContact.phone = phone || existingContact.phone;
+        existingContact.company = existingContact.company || null;
+        existingContact.notes = notes || existingContact.notes;
+        existingContact.updatedAt = new Date();
+        existingContact.lastInteraction = new Date();
 
         await existingContact.save();
         await existingContact.populate('tags');

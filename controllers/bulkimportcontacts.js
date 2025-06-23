@@ -103,6 +103,9 @@ const bulkImportContacts = async (req, res) => {
             });
 
 
+
+
+
             if (contacts.length >= batchSize) {
                 await Contact.insertMany(contacts);
                 contacts.length = 0;

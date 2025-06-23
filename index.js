@@ -12,6 +12,7 @@ const authRouters = require("./routes/auth")
 const contactRouters = require("./routes/contact")
 const CompanyRouter = require("./routes/company")
 const TagRouter = require("./routes/tag")
+const dashboardRouter = require("./routes/dashboard")
 
 
 const app = express();
@@ -31,6 +32,7 @@ app.use("/api", authRouters)
 app.use("/api/contacts", contactRouters)
 app.use("/api/companies", CompanyRouter)
 app.use("/api/tags", TagRouter)
+app.use("/api/dashboard", dashboardRouter)
 
 
 const PORT = process.env.PORT

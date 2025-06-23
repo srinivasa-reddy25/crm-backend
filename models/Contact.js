@@ -15,40 +15,42 @@ const contactSchema = new Schema({
     createdAt: Date,
     updatedAt: Date,
     lastInteraction: Date
-});
+}, { timestamps: true }
+);
 
 
-let wasNew = false;
+// let wasNew = false;
 
-contactSchema.pre('save', function (next) {
-    wasNew = this.isNew; 
-    this.updatedAt = Date.now();
-    next();
-});
+// contactSchema.pre('save', function (next) {
+//     wasNew = this.isNew; 
+//     this.updatedAt = Date.now();
+//     next();
+// });
 
 contactSchema.index({ name: 'text', email: 'text' });
 
 
 contactSchema.post('save', async function (doc, next) {
-    try {
-        await Activity.create({
-            user: doc.createdBy,
-            action: wasNew ? 'contact_created' : 'contact_updated',
-            entityType: 'contact',
-            entityId: doc._id,
-            entityName: doc.name,
-            details: {
-                contactName: doc.name,
-                company: doc.company,
-                email: doc.email
-            }
-        });
-    } catch (err) {
-        console.error('Activity logging failed (save):', err);
+    if (doc.isNew) {
+        try {
+            await Activity.create({
+                user: doc.createdBy,
+                action: 'contact_created',
+                entityType: 'contact',
+                entityId: doc._id,
+                entityName: doc.name,
+                details: {
+                    contactName: doc.name,
+                    company: doc.company,
+                    email: doc.email
+                }
+            });
+        } catch (err) {
+            console.error('Activity logging failed (creation):', err);
+        }
     }
     next();
 });
-
 
 
 contactSchema.pre('findOneAndDelete', async function (next) {
@@ -81,5 +83,6 @@ contactSchema.post('findOneAndDelete', async function (result, next) {
     next();
 });
 
-const Contact = mongoose.models.Contact || mongoose.model("Contact", contactSchema);
+// const Contact = mongoose.models.Contact || mongoose.model("Contact", contactSchema);
+const Contact = mongoose.model("Contact", contactSchema);
 module.exports = { Contact };

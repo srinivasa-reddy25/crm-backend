@@ -13,7 +13,6 @@ const activitySchema = new Schema({
             'bulk_import',
             'bulk_delete',
             'user_login',
-            'user_logout'
         ],
         required: true
     },

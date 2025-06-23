@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const { validationResult } = require('express-validator');
 
 const User = require('../models/User'); // Assuming you have a User model
+const { Contact } = require('../models/Contact'); // Assuming you have a Contact model
 
 const getAllTags = async (req, res) => {
     try {
@@ -188,13 +189,24 @@ const deleteTagById = async (req, res) => {
 
         const userId = user._id;
 
-
-
         const tagId = req.params.id;
 
         if (!mongoose.Types.ObjectId.isValid(tagId)) {
             return res.status(400).json({ error: 'Invalid tag ID' });
         }
+
+        const contactsWithTag = await Contact.find({ tags: tagId });
+
+        if (contactsWithTag.length > 0) {
+            return res.status(409).json({
+                message: "Cannot delete tag that is in use by contacts",
+                contactCount: contactsWithTag.length
+            });
+        }
+        // else {
+        //     return res.status(400).json({ error: 'No contacts found with this tag' });
+        // }
+
 
         const tag = await Tag.findOneAndDelete({
             _id: tagId,

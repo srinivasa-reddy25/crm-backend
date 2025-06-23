@@ -12,7 +12,7 @@ const getActivities = async (req, res) => {
 
         const userId = user._id;
         const {
-            limit = 20,
+            limit = 10,
             cursor,
             action,
             entityType,
@@ -20,35 +20,48 @@ const getActivities = async (req, res) => {
             endDate
         } = req.query;
 
+        // console.log("startDate : ", startDate);
+        // console.log("endDate : ", endDate);
+
         const query = { user: userId };
 
-        // Action type filter (e.g. contact_created)
+
         if (action) {
             query.action = action;
         }
 
-        // Entity type filter (e.g. contact, tag)
+
         if (entityType) {
             query.entityType = entityType;
         }
 
-        // Date range filter
+
         if (startDate || endDate) {
-            query.createdAt = {};
-            if (startDate) query.createdAt.$gte = new Date(startDate);
-            if (endDate) query.createdAt.$lte = new Date(endDate);
+            query.timestamp = {};
+            if (startDate) query.timestamp.$gte = new Date(startDate);
+            if (endDate) query.timestamp.$lte = new Date(endDate);
         }
 
-        // Cursor-based pagination (infinite scroll)
+
         if (cursor && mongoose.Types.ObjectId.isValid(cursor)) {
             query._id = { $lt: cursor };
         }
 
-        const pageLimit = Math.min(parseInt(limit), 100); // Max 100 per page
+        const pageLimit = Math.min(parseInt(limit), 100);
+        console.log("Query being sent to MongoDB:", query);
+
+        // const testActivities = await Activity.find({
+        //     createdAt: {
+        //         $gte: new Date("2025-06-01T00:00:00.000Z"),
+        //         $lte: new Date("2025-06-30T23:59:59.999Z")
+        //     }
+        // }).sort({ createdAt: -1 }).limit(5);
+
+        // console.log("Test date-filtered activities:", testActivities);
 
         const activities = await Activity.find(query)
-            .sort({ _id: -1 }) // Newest first
-            .limit(pageLimit + 1) // Fetch one extra to check hasMore
+            .sort({ _id: -1 })
+            .limit(pageLimit + 1)
             .populate('user', 'name email avatar');
 
         const hasMore = activities.length > pageLimit;
@@ -61,6 +74,7 @@ const getActivities = async (req, res) => {
             nextCursor,
             hasMore
         });
+
     } catch (error) {
         console.error("Error fetching activities:", error);
         return res.status(500).json({ error: "Server error" });
