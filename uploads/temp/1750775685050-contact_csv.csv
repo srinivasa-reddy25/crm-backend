@@ -1,0 +1,19 @@
+name,email,phone,company,notes,tags
+John Smith,john.smith@example.com,555-123-4567,TechCorp,Met at conference last month,Lead;Follow-Up
+Sarah Johnson,sarah.j@techcorp.com,555-987-6543,TechCorp,Interested in enterprise plan,Lead;VIP
+Emily Davis,emily@startup.io,555-345-6789,EduSmart,Following up in two weeks,Follow-Up;Important
+David Wilson,d.wilson@megacorp.com,555-456-7890,MarketGenius,Decision maker for IT department,VIP;Hot Lead
+Robert Taylor,robert.t@smallbiz.com,555-678-9012,TechCorp,Budget constraints - offer discount,Lead;Budget
+Amanda Garcia,amanda.g@enterprise.org,555-789-0123,HealthWave,High priority prospect,Hot Lead;VIP
+Thomas Martinez,thomas@agency.co,555-890-1234,EduSmart,Referred by David Wilson,Lead;Referral
+Lisa Robinson,lisa.r@corporation.com,555-901-2345,MarketGenius,Scheduled demo next week,Demo;Follow-Up
+Kevin Lee,kevin@nonprofit.org,555-012-3456,GreenLogix,Looking for donation management,Lead;Nonprofit
+Michelle Wright,michelle.w@education.edu,555-123-4567,TechCorp,Academic discount applicable,Education;Lead
+Brian Adams,brian.a@healthcare.med,555-234-5678,HealthWave,HIPAA compliance required,Lead;Healthcare
+Jennifer Clark,jen@retail.store,555-345-6789,EduSmart,Seasonal promotion interest,Follow-Up;Retail
+Daniel Lewis,d.lewis@financial.bank,555-456-7890,MarketGenius,Investment in new CRM system,Hot Lead;Finance
+Rachel White,rachel@legal.law,555-567-8901,GreenLogix,Contract review pending,Legal;Follow-Up
+Christopher Green,chris@manufacturing.com,555-678-9012,TechCorp,Plant expansion project,Lead;Manufacturing
+Stephanie Hall,stephanie@hospitality.hotel,555-789-0123,HealthWave,Multiple location implementation,VIP;Hospitality
+Matthew King,matt@technology.tech,555-890-1234,EduSmart,Integration with existing systems,Technical;Lead
+Laura Scott,laura@ecommerce.shop,555-901-2345,MarketGenius,Shopping cart integration needed,Lead;E-commerce

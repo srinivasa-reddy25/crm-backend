@@ -6,7 +6,7 @@ const { Activity } = require('./Activities');
 
 const contactSchema = new Schema({
     name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
+    email: { type: String, required: true },
     phone: String,
     company: { type: ObjectId, ref: 'Company' },
     tags: [{ type: ObjectId, ref: 'Tag' }],
@@ -24,6 +24,8 @@ contactSchema.pre('save', function (next) {
     this._wasNew = this.isNew;
     next();
 });
+
+contactSchema.index({ email: 1, createdBy: 1 }, { unique: true });
 
 contactSchema.index({ name: 'text', email: 'text' });
 
@@ -50,7 +52,6 @@ contactSchema.post('save', async function (doc, next) {
     }
     next();
 });
-
 
 contactSchema.pre('findOneAndDelete', async function (next) {
     this._toDelete = await this.model.findOne(this.getQuery());

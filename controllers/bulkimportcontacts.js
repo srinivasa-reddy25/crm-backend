@@ -46,20 +46,18 @@ const bulkImportContacts = async (req, res) => {
             let existingCompanyid = null;
 
             if (company) {
-                const existingCompany = await Company.findOne({ name: company, createdBy: userId });
-                existingCompanyid = existingCompany ? existingCompany._id : null;
-                // if (existingCompany) {
-                //     existingCompany.usageCount += 1;
-                //     await existingCompany.save();
-                // } else {
-                //     const newCompany = new Company({
-                //         name: company,
-                //         createdBy: userId,
-                //         usageCount: 1,
-                //     });
-                //     await newCompany.save();
-                // }
-                console.log("existingCompanyid : ", existingCompanyid);
+                let existingCompany = await Company.findOne({ name: company, createdBy: userId });
+
+                if (!existingCompany) {
+                    existingCompany = new Company({
+                        name: company,
+                        createdBy: userId,
+                    });
+                    await existingCompany.save();
+                }
+
+                existingCompanyid = existingCompany._id;
+                // console.log("existingCompanyid : ", existingCompanyid);
             }
 
             if (tags) {

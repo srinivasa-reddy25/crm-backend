@@ -6,7 +6,7 @@ const ObjectId = Schema.Types.ObjectId;
 
 
 const CompanySchema = mongoose.Schema({
-    name: { type: String, required: true, unique: true },
+    name: { type: String, required: true },
     industry: String,
     website: String,
     address: String,
@@ -25,5 +25,11 @@ CompanySchema.pre('save', function (next) {
 }
 );
 
+CompanySchema.index({ name: 1, createdBy: 1 }, { unique: true });
+
+
 const Company = mongoose.models.Company || mongoose.model("Company", CompanySchema);
+
+// const Company = mongoose.model("Company", CompanySchema);
+
 module.exports = { Company };

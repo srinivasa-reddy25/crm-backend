@@ -10,7 +10,7 @@ const getCrmContextForAi = async (userId, userMessage) => {
 
     const contacts = await Contact.find({ createdBy: userId })
         .sort({ lastInteraction: -1 })
-        .limit(5)
+        // .limit(5)
         .populate('company', 'name')
         .populate('tags', 'name')
 
