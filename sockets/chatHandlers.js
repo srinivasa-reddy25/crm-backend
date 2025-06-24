@@ -38,6 +38,11 @@ async function handleGetChatHistory(socket, userId, conversationId, page = 1, li
     try {
         if (!userId || !conversationId) return;
 
+        // if (conversationId === 'new') {
+        //     console.warn('❗ Attempted to fetch history for a new conversation');
+        //     return socket.emit('chat-history-error', 'Cannot fetch history for a new conversation');
+        // }
+
         const messages = await ChatMessage.find({
             user: userId,
             conversationId
@@ -100,11 +105,20 @@ function setupSocketIO(server, options = {}) {
 
                 const userMsg = await saveMessage(userId, message, 'user', conversationId);
 
+                // if (conversationId === 'new') {
+                //     const newconvesationId = userMsg.conversationId;
+                // }
+
+                let conversationIdforAiMessage = conversationId;
+                if (conversationId === 'new') {
+                    conversationIdforAiMessage = userMsg.conversationId;
+                }
+
                 socket.emit('ai-typing', true);
 
                 const aiResponse = await processWithAI(message, userId);
 
-                const aiMsg = await saveMessage(userId, aiResponse, 'ai', conversationId);
+                const aiMsg = await saveMessage(userId, aiResponse, 'ai', conversationIdforAiMessage);
 
                 socket.emit('ai-typing', false);
 

@@ -4,28 +4,30 @@ const { ChatMessage } = require('../models/chatMessage');
 const { Conversation } = require('../models/Conversation');
 
 
+async function CreateConversation(userId) {
+    // let conversation = await Conversation.findOne({
+    //     user: userId,
+    //     isArchived: false
+    // }).sort({ lastUpdated: -1 });
 
-async function getOrCreateConversation(userId) {
-    let conversation = await Conversation.findOne({ user: userId, isArchived: false })
-        .sort({ lastUpdated: -1 });
-
-    if (!conversation) {
-        conversation = new Conversation({
-            user: userId,
-            title: `Conversation - ${new Date().toLocaleString()}`
-        });
-        await conversation.save();
-    }
+    const conversation = new Conversation({
+        user: userId,
+        title: `Conversation - ${new Date().toLocaleString()}`,
+        createdAt: new Date(),
+        lastUpdated: new Date(),
+        isArchived: false,
+    });
+    await conversation.save();
 
     return conversation;
 }
 
 
-
-async function saveMessage(userId, messageText, sender, conversationId = null) {
+async function saveMessage(userId, messageText, sender, conversationId) {
     let conversation;
 
-    if (conversationId) {
+    // When valid conversationId is provided
+    if (conversationId && conversationId !== 'new') {
         conversation = await Conversation.findOne({
             _id: conversationId,
             user: userId,
@@ -36,9 +38,8 @@ async function saveMessage(userId, messageText, sender, conversationId = null) {
             throw new Error('❌ Conversation not found or unauthorized');
         }
     } else {
-        conversation = await getOrCreateConversation(userId);
+        conversation = await CreateConversation(userId);
     }
-
 
     conversation.lastUpdated = new Date();
     await conversation.save();
@@ -55,7 +56,15 @@ async function saveMessage(userId, messageText, sender, conversationId = null) {
     });
 
     await message.save();
+
+    if (conversationId === 'new') {
+        return {
+            conversationId: conversation._id,
+            message,
+        };
+    }
+
     return message;
 }
 
-module.exports = { saveMessage, getOrCreateConversation };
+module.exports = { saveMessage, CreateConversation };
