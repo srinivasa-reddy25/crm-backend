@@ -18,7 +18,6 @@ const contactSchema = new Schema({
 }, { timestamps: true }
 );
 
-
 // let wasNew = false;
 
 contactSchema.pre('save', function (next) {
@@ -83,6 +82,17 @@ contactSchema.post('findOneAndDelete', async function (result, next) {
     next();
 });
 
-// const Contact = mongoose.models.Contact || mongoose.model("Contact", contactSchema);
-const Contact = mongoose.model("Contact", contactSchema);
+
+
+contactSchema.virtual('modifiedforAi').get(function () {
+    return `${this.name} can be reached at ${this.email}. They are currently employed at ${this.company ? this.company?.name : 'an unknown company'}. The last recorded interaction was on ${this.lastInteraction ? this.lastInteraction.toLocaleDateString() : 'an unknown date'}. Notes: ${this.notes || 'No notes available'}. Tags associated: ${this.tags && this.tags.length > 0 ? this.tags.map(tag => tag.name).join(', ') : 'No tags'}.`;
+})
+contactSchema.set('toObject', { virtuals: true });
+contactSchema.set('toJSON', { virtuals: true });
+
+
+
+
+const Contact = mongoose.models.Contact || mongoose.model("Contact", contactSchema);
+// const Contact = mongoose.model("Contact", contactSchema);
 module.exports = { Contact };

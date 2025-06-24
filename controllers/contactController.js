@@ -1,18 +1,17 @@
 // import Contact from "../models/Contact.js";
 
-const { Contact } = require("../models/Contact.js");
+const { Contact } = require("../models/Contact");
 
 const mongoose = require("mongoose");
 
 const { Activity } = require('../models/Activities.js');
 
 const { Tag } = require("../models/Tags.js");
-const { Company } = require("../models/Company.js");
+const { Company } = require("../models/Company");
 
-const User = require("../models/User.js"); // Assuming you have a User model
+const User = require("../models/User.js");
 
 
-// import validationResult from 'express-validator';
 
 const { validationResult } = require('express-validator');
 
@@ -389,7 +388,7 @@ const updateContactById = async (req, res) => {
 
                 existingContact.tags = tags;
             }
-            
+
         }
 
 

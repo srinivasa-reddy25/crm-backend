@@ -2,16 +2,34 @@ const axios = require('axios');
 console.log('🔵 AI Service Initialized');
 
 
-async function processWithAI(userMessage) {
 
-    console.log('🔵 Processing message with AI:', userMessage);
+// const { buildUserContext } = require('./contextBuilder');
+// const { buildPrompt } = require('./promptBuilder');
+
+const { getCrmContextForAi } = require('./aiContext');
+
+
+async function processWithAI(userMessage, userId) {
+
+    const prompt = await getCrmContextForAi(userId, userMessage)
+
+    // console.log('system prompt:', prompt);
+
+    // const context = await buildUserContext(userId);
+    // console.log(' User context built:', context);
+    // const prompt = buildPrompt(context, userMessage);
+    // console.log('Prompt built:', prompt);
+
+    console.log(' Processing message with AI:', userMessage);
     console.log("api key:", process.env.OPENAI_API_KEY ? 'Available' : 'Not Set');
+
+    // const prompt = null;
 
 
     try {
         const systemPrompt = {
             role: 'system',
-            content: 'You are a helpful assistant for a CRM dashboard.'
+            content: prompt || 'You are a helpful assistant for a CRM dashboard.'
         };
 
         const userPrompt = {

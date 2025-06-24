@@ -29,6 +29,11 @@ activitySchema.index({ user: 1, createdAt: -1 });
 activitySchema.index({ entityType: 1 });
 
 
+activitySchema.virtual('modifiedforAi').get(function () {
+    const name = this.entityName ? ` "${this.entityName}"` : '';
+    return `• Performed "${this.action}" on ${this.entityType}${name} at ${this.timestamp.toLocaleString()}.`;
+});
+
 
 
 
