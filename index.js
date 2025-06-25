@@ -46,6 +46,10 @@ app.use("/api/tags", TagRouter)
 app.use("/api/dashboard", dashboardRouter)
 app.use('/api/conversations', conversationRoutes);
 
+app.get('/', (req, res) => {
+    res.send('CRM Backend API is running ✅');
+});
+
 
 process.on('SIGINT', async () => {
     console.log('Received SIGINT. Graceful shutdown...');
