@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const { Contact } = require('../models/contact');
+const { Contact } = require('../models/Contact');
 const { Activity } = require('../models/Activities');
 
 

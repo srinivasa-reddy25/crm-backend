@@ -1,9 +1,9 @@
 
 const User = require('../models/User');
-const { Contact } = require('../models/contact'); 
-const { Activity } = require('../models/Activities'); 
+const { Contact } = require('../models/Contact');
+const { Activity } = require('../models/Activities');
 const { Tag } = require('../models/Tags');
-const { Company } = require('../models/company'); 
+const { Company } = require('../models/Company');
 
 async function buildUserContext(userId) {
     const user = await User.findById(userId).lean();
