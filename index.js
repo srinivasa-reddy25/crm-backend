@@ -3,17 +3,14 @@ const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
 const dotenv = require('dotenv')
-
 const http = require('http');
-const setupSocketIO = require('./sockets/chatHandlers');
+const mongoose = require('mongoose');
 
-
-// const { processWithAI } = require('./services/aiService');
 
 
 dotenv.config()
-
 const connectToDataBase = require('./config/database')
+const setupSocketIO = require('./sockets/chatHandlers');
 
 const authRouters = require("./routes/auth")
 const contactRouters = require("./routes/contact")
@@ -23,23 +20,25 @@ const dashboardRouter = require("./routes/dashboard")
 const conversationRoutes = require('./routes/conversationRoutes');
 
 
-const app = express();
 
+const app = express();
 const server = http.createServer(app);
 const io = setupSocketIO(server);
+
 
 
 app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:3000',
     credentials: true
 }));
+
+
 app.use(express.json());
 app.use(morgan('dev'));
 app.use(helmet());
 
+
 app.use('/api/activities', require('./routes/activityRoutes'));
-
-
 app.use("/api", authRouters)
 app.use("/api/contacts", contactRouters)
 app.use("/api/companies", CompanyRouter)
@@ -48,19 +47,22 @@ app.use("/api/dashboard", dashboardRouter)
 app.use('/api/conversations', conversationRoutes);
 
 
-const PORT = process.env.PORT
-
-
-// const testmessage = async (message) => {
-//     const aiResponse = await processWithAI(message);
-//     console.log("AI Response:", aiResponse);
-// }
-// testmessage("Hello, how can I help you today?");
-
-
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
     console.log('Received SIGINT. Graceful shutdown...');
-    process.exit(0);
+    try {
+        io.close(() => console.log('Socket.IO closed'));
+
+        server.close(() => console.log('HTTP server closed'))
+
+        await mongoose.disconnect();
+        console.log('Database disconnected');
+
+        process.exit(0);
+    } catch (err) {
+
+        console.error('Error during shutdown:', err);
+        process.exit(1);
+    }
 });
 
 process.on('SIGTERM', () => {
@@ -69,9 +71,7 @@ process.on('SIGTERM', () => {
 });
 
 
-
-
-
+const PORT = process.env.PORT
 
 server.listen(PORT, async () => {
     console.log(`Server starting on port ${PORT}...`);
@@ -83,6 +83,5 @@ server.listen(PORT, async () => {
         console.error(' Failed to connect to database:', error);
         process.exit(1);
     }
-
 })
 

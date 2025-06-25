@@ -80,9 +80,6 @@ function setupSocketIO(server, options = {}) {
         const { uid } = socket.user;
         console.log(`🧠 New socket connection established: ${socket.id}`);
 
-
-        console.log('🔌 New client connected:', socket.id);
-
         socket.on('join-chat', () => {
             socket.join(`chat-${uid}`);
             console.log(`✅ ${uid} joined chat-${uid}`);
