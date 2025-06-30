@@ -102,10 +102,6 @@ function setupSocketIO(server, options = {}) {
 
                 const userMsg = await saveMessage(userId, message, 'user', conversationId);
 
-                // if (conversationId === 'new') {
-                //     const newconvesationId = userMsg.conversationId;
-                // }
-
                 let conversationIdforAiMessage = conversationId;
                 if (conversationId === 'new') {
                     conversationIdforAiMessage = userMsg.conversationId;
@@ -113,7 +109,7 @@ function setupSocketIO(server, options = {}) {
 
                 socket.emit('ai-typing', true);
 
-                const aiResponse = await processWithAI(message, userId);
+                const aiResponse = await processWithAI(message, userId, conversationIdforAiMessage);
 
                 const aiMsg = await saveMessage(userId, aiResponse, 'ai', conversationIdforAiMessage);
 

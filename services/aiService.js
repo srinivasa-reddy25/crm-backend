@@ -9,16 +9,10 @@ console.log('🔵 AI Service Initialized');
 const { getCrmContextForAi } = require('./aiContext');
 
 
-async function processWithAI(userMessage, userId) {
+async function processWithAI(userMessage, userId, conversationIdforAiMessage) {
+    console.log('🔵 Processing message with AI:', userMessage, 'for user:', userId, 'in conversation:', conversationIdforAiMessage);
 
-    const prompt = await getCrmContextForAi(userId, userMessage)
-
-    // console.log('system prompt:', prompt);
-
-    // const context = await buildUserContext(userId);
-    // console.log(' User context built:', context);
-    // const prompt = buildPrompt(context, userMessage);
-    // console.log('Prompt built:', prompt);
+    const prompt = await getCrmContextForAi(userId, userMessage, conversationIdforAiMessage)
 
     console.log(' Processing message with AI:', userMessage);
     console.log("api key:", process.env.OPENAI_API_KEY ? 'Available' : 'Not Set');

@@ -1,16 +1,11 @@
 // import Contact from "../models/Contact.js";
 
 const { Contact } = require("../models/Contact");
-
 const mongoose = require("mongoose");
-
 const { Activity } = require('../models/Activities.js');
-
 const { Tag } = require("../models/Tags.js");
 const { Company } = require("../models/Company");
-
 const User = require("../models/User.js");
-
 
 
 const { validationResult } = require('express-validator');
@@ -511,7 +506,7 @@ const bulkDeleteContacts = async (req, res) => {
             user: userId,
             action: 'bulk_delete',
             entityType: 'contact',
-            entityId: null, // No single entity, since it's bulk
+            entityId: null,
             details: {
                 count: userContacts.length,
                 names: userContacts.map(c => c.name),

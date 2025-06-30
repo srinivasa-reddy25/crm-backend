@@ -65,7 +65,7 @@ const getActivities = async (req, res) => {
             .populate('user', 'name email avatar');
 
         const hasMore = activities.length > pageLimit;
-        if (hasMore) activities.pop();
+        if (hasMore) activities.pop();  
 
         const nextCursor = hasMore ? activities[activities.length - 1]._id : null;
 

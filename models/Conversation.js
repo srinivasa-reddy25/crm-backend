@@ -21,4 +21,4 @@ const conversationSchema = new Schema({
 conversationSchema.index({ user: 1, lastUpdated: -1 });
 
 const Conversation = mongoose.models.Conversation || mongoose.model('Conversation', conversationSchema);
-module.exports = { Conversation };
+module.exports = { Conversation }

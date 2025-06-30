@@ -36,7 +36,7 @@ const getSummaryMetrics = async (req, res) => {
 
         const totalActivities = await Activity.countDocuments({ user: userId });
 
-        console.log("User ID:", userId);
+        console.log("User ID:", userId);    
         console.log("lastWeek:", lastWeek.toISOString());
         console.log("Now:", new Date().toISOString());
 
@@ -154,11 +154,9 @@ const activitiesTimeline = async (req, res) => {
         console.error("Error fetching activities timeline:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
-
-
-
-
 }
+
+
 
 const tagDistribution = async (req, res) => {
     const user = await User.findOne({ firebaseUID: req.user.uid });
