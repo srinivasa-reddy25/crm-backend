@@ -94,6 +94,21 @@ const handleGoogleAuth = async (req, res) => {
 
         let user = await User.findOne({ firebaseUID: uid });
 
+        // The Firebase project may have changed while the CRM database stayed
+        // the same. In that case Google returns a new Firebase UID for an email
+        // that already owns CRM data. Relink the existing user instead of
+        // attempting to create a duplicate account and losing access to data.
+        if (!user && email) {
+            const existingUser = await User.findOne({ email });
+
+            if (existingUser) {
+                existingUser.firebaseUID = uid;
+                existingUser.displayName = name || existingUser.displayName;
+                existingUser.profilePicture = profilePicture || existingUser.profilePicture;
+                user = await existingUser.save();
+            }
+        }
+
         if (!user) {
             console.log("New Google user, creating account");
             user = new User({
