@@ -34,10 +34,9 @@ async function processWithAI(userMessage, userId, conversationIdforAiMessage) {
         const response = await axios.post(
             'https://api.openai.com/v1/chat/completions',
             {
-                model: 'gpt-4o-mini',
+                model: 'gpt-5.4-mini',
                 messages: [systemPrompt, userPrompt],
-                max_tokens: 300,
-                temperature: 0.7
+                max_completion_tokens: 300
             },
             {
                 headers: {
