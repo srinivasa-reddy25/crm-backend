@@ -94,32 +94,36 @@ function setupSocketIO(server, options = {}) {
             handleClearConversation(socket, payload);
         })
 
-        socket.on('send-message', async (data) => {
+        socket.on('send-message', async (data = {}, acknowledge = () => {}) => {
             const { message, conversationId } = data;
-            const userId = uid;
+            if (typeof acknowledge !== 'function') acknowledge = () => {};
+            if (typeof message !== 'string' || !message.trim()) {
+                acknowledge({ ok: false, error: 'Enter a message first.' });
+                return;
+            }
+            if (socket.data.processing) {
+                acknowledge({ ok: false, error: 'Please wait for the current reply.' });
+                return;
+            }
+            socket.data.processing = true;
+            let savedConversationId;
             try {
-                if (!userId || !message?.trim()) return;
-
-                const userMsg = await saveMessage(userId, message, 'user', conversationId);
-
-                let conversationIdforAiMessage = conversationId;
-                if (conversationId === 'new') {
-                    conversationIdforAiMessage = userMsg.conversationId;
-                }
-
+                const userMsg = await saveMessage(uid, message.trim(), 'user', conversationId);
+                savedConversationId = String(userMsg.conversationId);
+                // Tell the client which conversation owns this request before invoking AI.
+                acknowledge({ ok: true, conversationId: savedConversationId });
                 socket.emit('ai-typing', true);
-
-                const aiResponse = await processWithAI(message, userId, conversationIdforAiMessage);
-
-                const aiMsg = await saveMessage(userId, aiResponse, 'ai', conversationIdforAiMessage);
-
-                socket.emit('ai-typing', false);
-
+                const reply = await processWithAI(message.trim(), uid, savedConversationId);
+                const aiMsg = await saveMessage(uid, reply, 'ai', savedConversationId);
                 socket.emit('new-message', aiMsg);
-
             } catch (error) {
-                console.error('❌ Error processing message:', error.message);
-                socket.emit('error-message', 'Something went wrong. Please try again.');
+                console.error('Chat request failed:', error.code || error.message);
+                const message = error.code?.startsWith('AI_') ? error.message : 'Unable to process your message. Please retry.';
+                if (!savedConversationId) acknowledge({ ok: false, error: message });
+                socket.emit('error-message', { message, code: error.code || 'CHAT_ERROR', conversationId: savedConversationId || conversationId });
+            } finally {
+                socket.data.processing = false;
+                socket.emit('ai-typing', false);
             }
         });
 
