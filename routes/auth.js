@@ -7,166 +7,23 @@ const router = express.Router()
 
 
 
-const registerFunction = async (req, res) => {
-    const { uid, email } = req.user
+const { syncAuthAccount } = require('../services/authAccount');
 
-    const { name, profilePicture, preference } = req.body
-
-    // console.log("User details from middleware: ", req.user)
-
-    const prevuser = await User.findOne({ email })
-
-    if (prevuser) {
-        return res.status(409).json({
-            error: "The User already exists"
-        })
-    }
-    // return res.status(200).json({
-    //     message: "User does not exist, creating a new user",
-    //     uid, email, name
-    // })
-
-
-    const user = new User({
-        firebaseUID: uid,
-        displayName: name,
-        email: email,
-        profilePicture,
-        preference
-    })
-
-
-
-
-    const saveUser = await user.save();
-    res.status(200).json({
-        message: "Successfully created the user",
-        saveUser
-    })
-}
-
-
-const loginFunction = async (req, res) => {
-
-    const { uid, email } = req.user
-
+const completeAuth = async (req, res) => {
     try {
-        const user = await User.findOne({ firebaseUID: uid });
-
-        if (!user) {
-            return res.status(404).json({
-                error: "User not found. Please register first."
-            })
-        }
-
-        await Activity.create({
-            user: user._id,
-            action: "user_login",
-            entityType: "user",
-            entityId: user._id,
-            entityName: user.displayName || user.email,
-            details: {
-                email: user.email
-            }
+        const result = await syncAuthAccount(req.user, req.body, { recordLogin: req.path !== "/auth/session" });
+        return res.status(result.isNewUser ? 201 : 200).json({
+            message: result.isNewUser ? 'Account created successfully' : 'Login successful',
+            ...result,
         });
-
-        res.status(200).json({
-            message: 'Login successful',
-            user
-        });
-
-    } catch (err) {
-        console.log("login failed", err)
-        res.status(500).json({
-            error: "Login failed"
-        });
-    }
-
-}
-
-
-const handleGoogleAuth = async (req, res) => {
-    const { uid, email } = req.user
-
-    const { name, profilePicture, preference } = req.body
-
-    try {
-
-        let user = await User.findOne({ firebaseUID: uid });
-
-        // The Firebase project may have changed while the CRM database stayed
-        // the same. In that case Google returns a new Firebase UID for an email
-        // that already owns CRM data. Relink the existing user instead of
-        // attempting to create a duplicate account and losing access to data.
-        if (!user && email) {
-            const existingUser = await User.findOne({ email });
-
-            if (existingUser) {
-                existingUser.firebaseUID = uid;
-                existingUser.displayName = name || existingUser.displayName;
-                existingUser.profilePicture = profilePicture || existingUser.profilePicture;
-                user = await existingUser.save();
-            }
-        }
-
-        if (!user) {
-            console.log("New Google user, creating account");
-            user = new User({
-                firebaseUID: uid,
-                displayName: name,
-                email: email,
-                profilePicture: profilePicture || '',
-                preference: 'light',
-            });
-
-            await user.save();
-
-            await Activity.create({
-                user: user._id,
-                action: "user_register",
-                entityType: "user",
-                entityId: user._id,
-                entityName: user.displayName || user.email,
-                details: {
-                    email: user.email
-                }
-            });
-
-            return res.status(201).json({
-                message: 'Google user registered successfully',
-                user,
-                isNewUser: true
-            });
-        }
-
-        await Activity.create({
-            user: user._id,
-            action: "user_login",
-            entityType: "user",
-            entityId: user._id,
-            entityName: user.displayName || user.email,
-            details: {
-                email: user.email
-            }
-        });
-
-
-
-
-        return res.status(200).json({
-            message: 'Google login successful',
-            user,
-            isNewUser: false
-        });
-
-    } catch (err) {
-        console.error("Google auth error:", err);
-        return res.status(500).json({
-            error: "Authentication failed"
+    } catch (error) {
+        console.error('Account synchronization failed:', error.code || 'server-error');
+        return res.status(error.status || 500).json({
+            code: error.code === 'EMAIL_NOT_VERIFIED' ? error.code : 'ACCOUNT_SYNC_FAILED',
+            error: error.status ? error.message : 'Could not finish signing in. Please try again.',
         });
     }
 };
-
 
 const getprofilefunction = async (req, res) => {
     const { uid, email } = req.user
@@ -229,9 +86,10 @@ const updateprofilefunction = async (req, res) => {
 
 }
 
-router.post("/auth/register", authenticate, registerFunction)
-router.post("/auth/login", authenticate, loginFunction)
-router.post("/auth/google", authenticate, handleGoogleAuth);
+router.post("/auth/register", authenticate, completeAuth)
+router.post("/auth/login", authenticate, completeAuth)
+router.post("/auth/session", authenticate, completeAuth)
+router.post("/auth/google", authenticate, completeAuth);
 
 router.get("/auth/profile", authenticate, getprofilefunction)
 router.put("/auth/profile", authenticate, updateprofilefunction)

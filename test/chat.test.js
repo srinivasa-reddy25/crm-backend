@@ -7,7 +7,7 @@ function load(relative, deps) {
   const module = { exports: {} };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', relative), 'utf8'), {
     module, exports: module.exports, require: name => { if (!(name in deps)) throw new Error(name); return deps[name]; },
-    process: { env: { OPENAI_API_KEY: 'test-key' } }, console: { log() {}, error() {} }
+    process: { env: { GEMINI_API_KEY: 'test-key' } }, console: { log() {}, error() {} }
   });
   return module.exports;
 }
@@ -17,18 +17,21 @@ function service(post) {
 test('successful AI response is returned and request has a timeout', async () => {
   const ai = service(async (url, body, config) => {
     assert.equal(config.timeout, 30000);
-    assert.equal(body.messages[1].content, 'hello');
-    return { data: { choices: [{ message: { content: ' OK ' } }] } };
+    assert.match(url, /generativelanguage\.googleapis\.com.*gemini-3.5-flash-lite:generateContent$/);
+    assert.equal(config.headers['x-goog-api-key'], 'test-key');
+    assert.equal(body.contents[0].parts[0].text, 'hello');
+    assert.equal(body.systemInstruction.parts[0].text, 'Test context');
+    return { data: { candidates: [{ finishReason: 'STOP', content: { parts: [{ text: ' OK ' }] } }] } };
   });
   assert.equal(await ai.processWithAI('hello', 'u', 'c'), 'OK');
 });
 test('quota rejection is surfaced, not saved as a fake assistant reply', async () => {
-  const ai = service(async () => { throw { response: { status: 429, data: { error: { code: 'insufficient_quota', message: 'No credits remaining' } } } }; });
-  await assert.rejects(ai.processWithAI('hello', 'u', 'c'), error => error.code === 'AI_QUOTA_EXHAUSTED' && /credits/.test(error.message));
+  const ai = service(async () => { throw { response: { status: 429, data: { error: { status: 'RESOURCE_EXHAUSTED', message: 'Quota exceeded' } } } }; });
+  await assert.rejects(ai.processWithAI('hello', 'u', 'c'), error => error.code === 'AI_QUOTA_EXHAUSTED' && /quota/.test(error.message));
 });
 test('timeouts and empty responses produce retryable errors', async () => {
   await assert.rejects(service(async () => { throw { code: 'ECONNABORTED' }; }).processWithAI('hello', 'u', 'c'), /too long/);
-  await assert.rejects(service(async () => ({ data: { choices: [] } })).processWithAI('hello', 'u', 'c'), /could not complete/);
+  await assert.rejects(service(async () => ({ data: { candidates: [] } })).processWithAI('hello', 'u', 'c'), /could not complete/);
 });
 function socketHarness(processWithAI) {
   let connect;
@@ -63,4 +66,17 @@ test('AI failure always clears waiting state and emits a visible error', async (
   assert.equal(h.events.find(event => event.name === 'error-message').payload.code, 'AI_QUOTA_EXHAUSTED');
   assert.equal(h.events.at(-1).payload, false);
   assert.equal(h.socket.data.processing, false);
+});
+
+test('Gemini safety blocks are surfaced without a fake reply', async () => {
+  const ai = service(async () => ({ data: { promptFeedback: { blockReason: 'SAFETY' } } }));
+  await assert.rejects(ai.processWithAI('hello', 'u', 'c'), error => error.code === 'AI_RESPONSE_BLOCKED');
+});
+test('Gemini thought parts are not returned to the chat', async () => {
+  const ai = service(async () => ({ data: { candidates: [{ content: { parts: [{ thought: true, text: 'private thought' }, { text: 'Answer' }] } }] } }));
+  assert.equal(await ai.processWithAI('hello', 'u', 'c'), 'Answer');
+});
+test('truncated Gemini responses are reported rather than saved as complete answers', async () => {
+  const ai = service(async () => ({ data: { candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [{ text: 'unfinished' }] } }] } }));
+  await assert.rejects(ai.processWithAI('hello', 'u', 'c'), error => error.code === 'AI_RESPONSE_TOO_LONG');
 });

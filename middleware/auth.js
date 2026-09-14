@@ -1,48 +1,22 @@
-const admin = require("../config/firebase")
+const admin = require('../config/firebase');
 
-
-
-const authenticate = async (req, res, next) => {
+async function authenticate(req, res, next) {
+    const header = req.headers.authorization;
+    if (!header?.startsWith('Bearer ') || !header.slice(7).trim()) {
+        return res.status(401).json({ code: 'AUTH_REQUIRED', error: 'Please sign in to continue.' });
+    }
     try {
-        const authHeader = req.headers.authorization;
-
-
-
-        // console.log("Auth Header : ", authHeader)
-
-        // console.log("Auth Header : ", authHeader)
-        // console.log(!authHeader.startsWith("Bearer "))
-
-        if (!authHeader || !authHeader.startsWith("Bearer ")) {
-            console.log("No Authorization Header Found")
-            return res.status(401).json({ error: 'Unauthorized: No token provided' });
+        const token = await admin.auth().verifyIdToken(header.slice(7), true);
+        if (!token.email || !token.email_verified) {
+            return res.status(403).json({ code: 'EMAIL_NOT_VERIFIED', error: 'Verify your email before continuing.' });
         }
-
-        // const token=req.body.token || req.query.token;
-        const token = authHeader.split(" ")[1];
-
-        if (!token) {
-            return res.status(401).json({ error: 'Unauthorized: No token provided' });
-        }
-        // const token = authHeader.split(" ")[1]
-
-        const decodedToken = await admin.auth().verifyIdToken(token);
-        // console.log("Decoded Token : ", decodedToken)
-
         req.user = {
-            uid: decodedToken.uid,
-            id: decodedToken.uid,
-            email: decodedToken.email
-        }
-        next();
-
-    } catch (err) {
-        console.log("Authentication Error : ", err)
-        res.status(401).json({
-            error: 'Unauthorized: No token provided'
-        })
+            uid: token.uid, id: token.uid, email: token.email,
+            emailVerified: token.email_verified, name: token.name, picture: token.picture,
+        };
+        return next();
+    } catch {
+        return res.status(401).json({ code: 'AUTH_EXPIRED', error: 'Your session expired. Please sign in again.' });
     }
 }
-
-
 module.exports = authenticate;

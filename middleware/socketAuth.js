@@ -1,4 +1,3 @@
-const jwt = require('jsonwebtoken');
 const admin = require('firebase-admin');
 
 const User = require('../models/User'); // Adjust the path as necessary
@@ -14,7 +13,10 @@ async function socketAuthMiddleware(socket, next) {
 
 
     try {
-        const decodedToken = await admin.auth().verifyIdToken(token);
+        const decodedToken = await admin.auth().verifyIdToken(token, true);
+        if (!decodedToken.email || !decodedToken.email_verified) {
+            return next(new Error('Verify your email before using chat'));
+        }
         const user = await User.findOne({ firebaseUID: decodedToken.uid });
         if (!user) {
             return next(new Error('User not found'));
