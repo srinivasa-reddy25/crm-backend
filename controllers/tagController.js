@@ -1,3 +1,4 @@
+const { withContactCounts } = require('../services/tagCounts');
 const { Tag } = require('../models/Tags');
 
 const mongoose = require('mongoose');
@@ -17,7 +18,7 @@ const getAllTags = async (req, res) => {
 
         const userId = user._id;
 
-        const tags = await Tag.find({ createdBy: userId });
+        const tags = await withContactCounts(await Tag.find({ createdBy: userId }).lean(), userId);
         res.status(200).json({ tags });
     } catch (error) {
         console.error('Error fetching tags:', error);
@@ -119,7 +120,7 @@ const getTagById = async (req, res) => {
             return res.status(404).json({ error: 'Tag not found' });
         }
 
-        res.status(200).json(tag);
+        res.status(200).json((await withContactCounts([tag.toObject()], userId))[0]);
     } catch (error) {
         console.error('Error fetching tag:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -166,7 +167,7 @@ const updateTagById = async (req, res) => {
 
         res.status(200).json({
             message: 'Tag updated successfully',
-            tag,
+            tag: (await withContactCounts([tag.toObject()], userId))[0],
         });
     } catch (error) {
         console.error('Error updating tag:', error);
@@ -194,7 +195,7 @@ const deleteTagById = async (req, res) => {
             return res.status(400).json({ error: 'Invalid tag ID' });
         }
 
-        const contactsWithTag = await Contact.find({ tags: tagId });
+        const contactsWithTag = await Contact.find({ tags: tagId, createdBy: userId });
 
         if (contactsWithTag.length > 0) {
             return res.status(409).json({

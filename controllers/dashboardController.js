@@ -1,3 +1,4 @@
+const { withContactCounts } = require('../services/tagCounts');
 const { Contact } = require("../models/Contact.js");
 const { Tag } = require("../models/Tags.js");
 const { Company } = require("../models/Company.js");
@@ -165,37 +166,10 @@ const tagDistribution = async (req, res) => {
     }
     const userId = user._id;
     try {
-        const result = await Contact.aggregate([
-            { $match: { createdBy: userId } },
-            { $unwind: "$tags" },
-            {
-                $group: {
-                    _id: "$tags",
-                    count: { $sum: 1 }
-                }
-            },
-            {
-                $lookup: {
-                    from: "tags",
-                    localField: "_id",
-                    foreignField: "_id",
-                    as: "tagDetails"
-                }
-            },
-            {
-                $unwind: {
-                    path: "$tagDetails",
-                    preserveNullAndEmptyArrays: true
-                }
-            },
-            {
-                $project: {
-                    name: { $ifNull: ["$tagDetails.name", "Unknown"] },
-                    value: "$count"
-                }
-            },
-            { $sort: { value: -1 } }
-        ]);
+        const tags = await withContactCounts(await Tag.find({ createdBy: userId }).lean(), userId);
+        const result = tags.filter(tag => tag.usageCount > 0)
+            .map(tag => ({ _id: tag._id, name: tag.name, value: tag.usageCount }))
+            .sort((a, b) => b.value - a.value);
 
         res.json(result);
     } catch (err) {
